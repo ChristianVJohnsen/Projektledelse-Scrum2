@@ -1,3 +1,509 @@
-<html>
-    <h3>Hello world</h3>
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spil Hjemmeside</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 3em;
+            margin-bottom: 50px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 280px));
+            gap: 30px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+
+        .game-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .game-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .game-icon {
+            font-size: 3em;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .game-title {
+            font-size: 1.5em;
+            text-align: center;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .game-description {
+            text-align: center;
+            color: #666;
+            line-height: 1.4;
+            font-size: 0.95em;
+        }
+
+        .game-screen {
+            display: none;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .game-screen.active {
+            display: block;
+        }
+
+        .back-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-bottom: 20px;
+            transition: background 0.3s;
+        }
+
+        .back-btn:hover {
+            background: #5568d3;
+        }
+
+        #snake-canvas, #pong-canvas, #breakout-canvas {
+            border: 2px solid #333;
+            display: block;
+            margin: 20px auto;
+            background: #000;
+        }
+
+        .game-info {
+            text-align: center;
+            font-size: 1.2em;
+            margin: 10px 0;
+            color: #333;
+        }
+
+        .controls {
+            text-align: center;
+            color: #666;
+            margin-top: 20px;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="menu">
+            <h1>🎮 Vælg Dit Spil</h1>
+            <div class="games-grid">
+                <div class="game-card" onclick="showGame('snake')">
+                    <div class="game-icon">🐍</div>
+                    <div class="game-title">Snake</div>
+                    <div class="game-description">Det klassiske snake-spil! Spis æbler og voks dig stor uden at ramme dig selv.</div>
+                </div>
+                <div class="game-card" onclick="showGame('pong')">
+                    <div class="game-icon">🏓</div>
+                    <div class="game-title">Pong</div>
+                    <div class="game-description">Spil pong mod computeren! Første til 5 point vinder.</div>
+                </div>
+                <div class="game-card" onclick="showGame('breakout')">
+                    <div class="game-icon">🧱</div>
+                    <div class="game-title">Breakout</div>
+                    <div class="game-description">Ødelæg alle brikkerne med bolden! Pas på ikke at tabe bolden.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Snake Game -->
+        <div id="snake-game" class="game-screen">
+            <button class="back-btn" onclick="showMenu()">← Tilbage til Menu</button>
+            <h2 style="text-align: center; color: #333; margin-bottom: 20px;">🐍 Snake</h2>
+            <div class="game-info">Score: <span id="snake-score">0</span></div>
+            <canvas id="snake-canvas" width="400" height="400"></canvas>
+            <div class="controls">
+                <strong>Styring:</strong> Brug piletasterne til at styre slangen<br>
+                Spis de røde æbler for at vokse og få point!
+            </div>
+        </div>
+
+        <!-- Pong Game -->
+        <div id="pong-game" class="game-screen">
+            <button class="back-btn" onclick="showMenu()">← Tilbage til Menu</button>
+            <h2 style="text-align: center; color: #333; margin-bottom: 20px;">🏓 Pong</h2>
+            <div class="game-info">Dig: <span id="player-score">0</span> | Computer: <span id="ai-score">0</span></div>
+            <canvas id="pong-canvas" width="600" height="400"></canvas>
+            <div class="controls">
+                <strong>Styring:</strong> Brug ↑ og ↓ piletasterne eller W og S<br>
+                Første til 5 point vinder!
+            </div>
+        </div>
+
+        <!-- Breakout Game -->
+        <div id="breakout-game" class="game-screen">
+            <button class="back-btn" onclick="showMenu()">← Tilbage til Menu</button>
+            <h2 style="text-align: center; color: #333; margin-bottom: 20px;">🧱 Breakout</h2>
+            <div class="game-info">Score: <span id="breakout-score">0</span> | Liv: <span id="lives">3</span></div>
+            <canvas id="breakout-canvas" width="600" height="400"></canvas>
+            <div class="controls">
+                <strong>Styring:</strong> Brug ← og → piletasterne eller A og D<br>
+                Tryk MELLEMRUM for at starte
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentGame = null;
+
+        function showGame(game) {
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById(game + '-game').classList.add('active');
+            currentGame = game;
+            
+            if (game === 'snake') startSnake();
+            if (game === 'pong') startPong();
+            if (game === 'breakout') startBreakout();
+        }
+
+        function showMenu() {
+            document.getElementById('menu').style.display = 'block';
+            document.querySelectorAll('.game-screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            currentGame = null;
+        }
+
+        // SNAKE GAME
+        function startSnake() {
+            const canvas = document.getElementById('snake-canvas');
+            const ctx = canvas.getContext('2d');
+            const box = 20;
+            let snake = [{x: 10 * box, y: 10 * box}];
+            let food = {
+                x: Math.floor(Math.random() * 19 + 1) * box,
+                y: Math.floor(Math.random() * 19 + 1) * box
+            };
+            let score = 0;
+            let d = 'RIGHT';
+            let game;
+
+            document.onkeydown = direction;
+
+            function direction(e) {
+                if (currentGame !== 'snake') return;
+                if (e.keyCode === 37 && d !== 'RIGHT') d = 'LEFT';
+                else if (e.keyCode === 38 && d !== 'DOWN') d = 'UP';
+                else if (e.keyCode === 39 && d !== 'LEFT') d = 'RIGHT';
+                else if (e.keyCode === 40 && d !== 'UP') d = 'DOWN';
+            }
+
+            function draw() {
+                if (currentGame !== 'snake') {
+                    clearInterval(game);
+                    return;
+                }
+
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                for (let i = 0; i < snake.length; i++) {
+                    ctx.fillStyle = i === 0 ? '#4CAF50' : '#81C784';
+                    ctx.fillRect(snake[i].x, snake[i].y, box, box);
+                    ctx.strokeStyle = '#000';
+                    ctx.strokeRect(snake[i].x, snake[i].y, box, box);
+                }
+
+                ctx.fillStyle = '#FF5722';
+                ctx.fillRect(food.x, food.y, box, box);
+
+                let snakeX = snake[0].x;
+                let snakeY = snake[0].y;
+
+                if (d === 'LEFT') snakeX -= box;
+                if (d === 'UP') snakeY -= box;
+                if (d === 'RIGHT') snakeX += box;
+                if (d === 'DOWN') snakeY += box;
+
+                if (snakeX === food.x && snakeY === food.y) {
+                    score++;
+                    document.getElementById('snake-score').textContent = score;
+                    food = {
+                        x: Math.floor(Math.random() * 19 + 1) * box,
+                        y: Math.floor(Math.random() * 19 + 1) * box
+                    };
+                } else {
+                    snake.pop();
+                }
+
+                let newHead = {x: snakeX, y: snakeY};
+
+                if (snakeX < 0 || snakeY < 0 || snakeX >= canvas.width || snakeY >= canvas.height || collision(newHead, snake)) {
+                    clearInterval(game);
+                    alert('Game Over! Din score: ' + score);
+                    showMenu();
+                    return;
+                }
+
+                snake.unshift(newHead);
+            }
+
+            function collision(head, array) {
+                for (let i = 0; i < array.length; i++) {
+                    if (head.x === array[i].x && head.y === array[i].y) return true;
+                }
+                return false;
+            }
+
+            game = setInterval(draw, 100);
+        }
+
+        // PONG GAME
+        function startPong() {
+            const canvas = document.getElementById('pong-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const paddle = {w: 10, h: 80};
+            let player = {x: 10, y: canvas.height / 2 - 40, score: 0};
+            let ai = {x: canvas.width - 20, y: canvas.height / 2 - 40, score: 0};
+            let ball = {x: canvas.width / 2, y: canvas.height / 2, r: 8, vx: 4, vy: 4};
+            
+            const keys = {};
+            
+            document.onkeydown = (e) => keys[e.key] = true;
+            document.onkeyup = (e) => keys[e.key] = false;
+
+            function draw() {
+                if (currentGame !== 'pong') return;
+
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.strokeStyle = '#fff';
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(canvas.width / 2, 0);
+                ctx.lineTo(canvas.width / 2, canvas.height);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(player.x, player.y, paddle.w, paddle.h);
+                ctx.fillRect(ai.x, ai.y, paddle.w, paddle.h);
+
+                ctx.beginPath();
+                ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (keys['ArrowUp'] || keys['w']) player.y = Math.max(0, player.y - 6);
+                if (keys['ArrowDown'] || keys['s']) player.y = Math.min(canvas.height - paddle.h, player.y + 6);
+
+                ai.y += (ball.y - (ai.y + paddle.h / 2)) * 0.1;
+
+                ball.x += ball.vx;
+                ball.y += ball.vy;
+
+                if (ball.y - ball.r < 0 || ball.y + ball.r > canvas.height) ball.vy *= -1;
+
+                if (ball.x - ball.r < player.x + paddle.w && ball.y > player.y && ball.y < player.y + paddle.h) {
+                    ball.vx = Math.abs(ball.vx);
+                    ball.vy += (ball.y - (player.y + paddle.h / 2)) * 0.1;
+                }
+
+                if (ball.x + ball.r > ai.x && ball.y > ai.y && ball.y < ai.y + paddle.h) {
+                    ball.vx = -Math.abs(ball.vx);
+                    ball.vy += (ball.y - (ai.y + paddle.h / 2)) * 0.1;
+                }
+
+                if (ball.x < 0) {
+                    ai.score++;
+                    document.getElementById('ai-score').textContent = ai.score;
+                    resetBall();
+                }
+                if (ball.x > canvas.width) {
+                    player.score++;
+                    document.getElementById('player-score').textContent = player.score;
+                    resetBall();
+                }
+
+                if (player.score === 5) {
+                    alert('Du vandt!');
+                    showMenu();
+                    return;
+                }
+                if (ai.score === 5) {
+                    alert('Computeren vandt!');
+                    showMenu();
+                    return;
+                }
+
+                requestAnimationFrame(draw);
+            }
+
+            function resetBall() {
+                ball.x = canvas.width / 2;
+                ball.y = canvas.height / 2;
+                ball.vx = (Math.random() > 0.5 ? 1 : -1) * 4;
+                ball.vy = (Math.random() - 0.5) * 8;
+            }
+
+            draw();
+        }
+
+        // BREAKOUT GAME
+        function startBreakout() {
+            const canvas = document.getElementById('breakout-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const paddle = {w: 80, h: 10, x: canvas.width / 2 - 40, speed: 7};
+            let ball = {x: canvas.width / 2, y: canvas.height - 30, r: 8, vx: 4, vy: -4, moving: false};
+            let score = 0;
+            let lives = 3;
+            
+            const bricks = [];
+            const brickRows = 5;
+            const brickCols = 8;
+            const brickW = 70;
+            const brickH = 20;
+            const brickPadding = 5;
+            const brickOffsetTop = 50;
+            const brickOffsetLeft = 15;
+            
+            for (let c = 0; c < brickCols; c++) {
+                bricks[c] = [];
+                for (let r = 0; r < brickRows; r++) {
+                    bricks[c][r] = {x: 0, y: 0, status: 1};
+                }
+            }
+            
+            const keys = {};
+            document.onkeydown = (e) => {
+                keys[e.key] = true;
+                if (e.key === ' ' && !ball.moving) ball.moving = true;
+            };
+            document.onkeyup = (e) => keys[e.key] = false;
+
+            function drawBricks() {
+                for (let c = 0; c < brickCols; c++) {
+                    for (let r = 0; r < brickRows; r++) {
+                        if (bricks[c][r].status === 1) {
+                            const brickX = c * (brickW + brickPadding) + brickOffsetLeft;
+                            const brickY = r * (brickH + brickPadding) + brickOffsetTop;
+                            bricks[c][r].x = brickX;
+                            bricks[c][r].y = brickY;
+                            ctx.fillStyle = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8'][r];
+                            ctx.fillRect(brickX, brickY, brickW, brickH);
+                        }
+                    }
+                }
+            }
+
+            function collisionDetection() {
+                for (let c = 0; c < brickCols; c++) {
+                    for (let r = 0; r < brickRows; r++) {
+                        const b = bricks[c][r];
+                        if (b.status === 1) {
+                            if (ball.x > b.x && ball.x < b.x + brickW && ball.y > b.y && ball.y < b.y + brickH) {
+                                ball.vy *= -1;
+                                b.status = 0;
+                                score++;
+                                document.getElementById('breakout-score').textContent = score;
+                                if (score === brickRows * brickCols) {
+                                    alert('Du vandt! Score: ' + score);
+                                    showMenu();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            function draw() {
+                if (currentGame !== 'breakout') return;
+
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                drawBricks();
+                collisionDetection();
+
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(paddle.x, canvas.height - 20, paddle.w, paddle.h);
+
+                ctx.beginPath();
+                ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (keys['ArrowLeft'] || keys['a']) paddle.x = Math.max(0, paddle.x - paddle.speed);
+                if (keys['ArrowRight'] || keys['d']) paddle.x = Math.min(canvas.width - paddle.w, paddle.x + paddle.speed);
+
+                if (ball.moving) {
+                    ball.x += ball.vx;
+                    ball.y += ball.vy;
+
+                    if (ball.x - ball.r < 0 || ball.x + ball.r > canvas.width) ball.vx *= -1;
+                    if (ball.y - ball.r < 0) ball.vy *= -1;
+
+                    if (ball.y + ball.r > canvas.height - 20 && ball.x > paddle.x && ball.x < paddle.x + paddle.w) {
+                        ball.vy *= -1;
+                        ball.vx += (ball.x - (paddle.x + paddle.w / 2)) * 0.1;
+                    }
+
+                    if (ball.y > canvas.height) {
+                        lives--;
+                        document.getElementById('lives').textContent = lives;
+                        if (lives === 0) {
+                            alert('Game Over! Score: ' + score);
+                            showMenu();
+                            return;
+                        }
+                        ball.x = canvas.width / 2;
+                        ball.y = canvas.height - 30;
+                        ball.vx = 4;
+                        ball.vy = -4;
+                        ball.moving = false;
+                        paddle.x = canvas.width / 2 - 40;
+                    }
+                } else {
+                    ball.x = paddle.x + paddle.w / 2;
+                    ball.y = canvas.height - 30;
+                }
+
+                requestAnimationFrame(draw);
+            }
+
+            draw();
+        }
+    </script>
+</body>
 </html>
