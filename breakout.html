@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="da">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Breakout Spil</title>
+    <title>Breakout Game</title>
     <style>
         * {
             margin: 0;
@@ -21,7 +21,7 @@
         }
 
         .container {
-            max-width: 700px;
+            max-width: 900px;
             margin: 0 auto;
         }
 
@@ -86,6 +86,24 @@
             color: #333;
             margin: 20px 0;
         }
+
+        /* NEW: Back to menu button styling */
+        .menu-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2em;
+            margin: 10px auto;
+            display: block;
+            transition: background 0.3s;
+        }
+
+        .menu-btn:hover {
+            background: #5568d3;
+        }
     </style>
 </head>
 
@@ -95,14 +113,16 @@
 
         <div id="breakout-game" class="game-screen">
             <h2 style="text-align: center; color: #333; margin-bottom: 20px;">🧱 Breakout</h2>
-            <div class="game-info">Score: <span id="breakout-score">0</span> | Liv: <span id="lives">3</span></div>
-            <canvas id="breakout-canvas" width="600" height="400"></canvas>
-            <button class="start-btn" id="breakout-start-btn" onclick="startBreakoutGame()">Start Spil</button>
+            <div class="game-info">Score: <span id="breakout-score">0</span> | Lives: <span id="lives">3</span></div>
+            <canvas id="breakout-canvas" width="800" height="500"></canvas>
+            <button class="start-btn" id="breakout-start-btn" onclick="startBreakoutGame()">Start Game</button>
             <div class="controls">
-                <strong>Styring:</strong> Brug ← og → piletasterne eller A og D<br>
-                Tryk MELLEMRUM for at frigive bolden
+                <strong>Controls:</strong> Use ← and → arrow keys or A and D<br>
+                Press SPACEBAR to release the ball
             </div>
             <div class="game-over" id="breakout-game-over" style="display: none;"></div>
+            <!-- NEW: Back to menu button (hidden by default) -->
+            <button class="menu-btn" id="back-to-menu-btn" style="display: none;" onclick="backToMenu()">Back to Menu</button>
         </div>
     </div>
 
@@ -138,10 +158,17 @@
             }, 1000);
         }
 
+        // NEW: Back to menu function
+        function backToMenu() {
+            window.location.href = 'index.html'; // Change this to your actual homepage filename
+        }
+
         // BREAKOUT GAME
         function startBreakoutGame() {
             document.getElementById('breakout-start-btn').style.display = 'none';
             document.getElementById('breakout-game-over').style.display = 'none';
+            // NEW: Hide back to menu button when starting
+            document.getElementById('back-to-menu-btn').style.display = 'none';
             const canvas = document.getElementById('breakout-canvas');
             showCountdown(canvas, () => startBreakout());
         }
@@ -151,8 +178,8 @@
             const canvas = document.getElementById('breakout-canvas');
             const ctx = canvas.getContext('2d');
 
-            const paddle = { w: 80, h: 10, x: canvas.width / 2 - 40, speed: 6 };
-            let ball = { x: canvas.width / 2, y: canvas.height - 30, r: 8, vx: 3, vy: -3, moving: false };
+            const paddle = { w: 100, h: 12, x: canvas.width / 2 - 50, speed: 7 };
+            let ball = { x: canvas.width / 2, y: canvas.height - 40, r: 8, vx: 2, vy: -2, moving: false };
             let score = 0;
             let lives = 3;
 
@@ -161,12 +188,12 @@
 
             const bricks = [];
             const brickRows = 5;
-            const brickCols = 8;
-            const brickW = 70;
-            const brickH = 20;
-            const brickPadding = 5;
-            const brickOffsetTop = 50;
-            const brickOffsetLeft = 15;
+            const brickCols = 10;
+            const brickW = 75;
+            const brickH = 25;
+            const brickPadding = 3; // NEW: Reduced padding to minimize gaps
+            const brickOffsetTop = 60;
+            const brickOffsetLeft = 10; // NEW: Adjusted to fix left side gap
 
             for (let c = 0; c < brickCols; c++) {
                 bricks[c] = [];
@@ -232,7 +259,7 @@
                 collisionDetection();
 
                 ctx.fillStyle = '#fff';
-                ctx.fillRect(paddle.x, canvas.height - 20, paddle.w, paddle.h);
+                ctx.fillRect(paddle.x, canvas.height - 30, paddle.w, paddle.h);
 
                 ctx.beginPath();
                 ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
@@ -252,9 +279,25 @@
                     if (ball.x - ball.r < 0 || ball.x + ball.r > canvas.width) ball.vx *= -1;
                     if (ball.y - ball.r < 0) ball.vy *= -1;
 
-                    if (ball.y + ball.r > canvas.height - 20 && ball.x > paddle.x && ball.x < paddle.x + paddle.w) {
-                        ball.vy *= -1;
-                        ball.vx += (ball.x - (paddle.x + paddle.w / 2)) * 0.1;
+                    // NEW: Improved paddle collision to prevent ball getting stuck underneath
+                    const paddleTop = canvas.height - 30;
+                    const paddleBottom = paddleTop + paddle.h;
+                    
+                    if (ball.y + ball.r >= paddleTop && ball.y - ball.r <= paddleBottom && 
+                        ball.x >= paddle.x && ball.x <= paddle.x + paddle.w) {
+                        
+                        // Only bounce if ball is coming from above
+                        if (ball.vy > 0 && ball.y < paddleTop + paddle.h / 2) {
+                            ball.vy *= -1;
+                            ball.y = paddleTop - ball.r; // NEW: Position ball above paddle to prevent sticking
+                            
+                            // NEW: Calculate angle change without increasing speed
+                            const hitPos = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
+                            const angle = hitPos * (Math.PI / 4); // Max 45 degree angle
+                            const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy); // Keep current speed
+                            ball.vx = speed * Math.sin(angle);
+                            ball.vy = -speed * Math.cos(angle);
+                        }
                     }
 
                     if (ball.y > canvas.height) {
@@ -265,15 +308,15 @@
                             return;
                         }
                         ball.x = canvas.width / 2;
-                        ball.y = canvas.height - 30;
-                        ball.vx = 3;
-                        ball.vy = -3;
+                        ball.y = canvas.height - 40;
+                        ball.vx = 2;
+                        ball.vy = -2;
                         ball.moving = false;
-                        paddle.x = canvas.width / 2 - 40;
+                        paddle.x = canvas.width / 2 - 50;
                     }
                 } else {
                     ball.x = paddle.x + paddle.w / 2;
-                    ball.y = canvas.height - 30;
+                    ball.y = canvas.height - 40;
                 }
 
                 gameLoop = requestAnimationFrame(draw);
@@ -285,14 +328,96 @@
                     cancelAnimationFrame(gameLoop);
                 }
 
-                const gameOver = document.getElementById('breakout-game-over');
+                // NEW: Draw victory/game over screen directly on canvas
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
                 if (won) {
-                    gameOver.innerHTML = `🎉 Du vandt!<br>Score: ${score}<br><br>Tryk på "Start Spil" for at spille igen!`;
+                    // NEW: Draw fireworks for victory
+                    drawFireworks(ctx, canvas);
+                    
+                    ctx.fillStyle = '#FFD700';
+                    ctx.font = 'bold 60px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('🎉 YOU WON! 🎉', canvas.width / 2, canvas.height / 2 - 40);
+                    
+                    ctx.fillStyle = '#FFF';
+                    ctx.font = '30px Arial';
+                    ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
                 } else {
-                    gameOver.innerHTML = `Game Over!<br>Score: ${score}<br><br>Tryk på "Start Spil" for at spille igen!`;
+                    ctx.fillStyle = '#FF6B6B';
+                    ctx.font = 'bold 60px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('GAME OVER!', canvas.width / 2, canvas.height / 2 - 40);
+                    
+                    ctx.fillStyle = '#FFF';
+                    ctx.font = '30px Arial';
+                    ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
                 }
-                gameOver.style.display = 'block';
+
+                const gameOver = document.getElementById('breakout-game-over');
+                gameOver.style.display = 'none';
+                
+                // NEW: Show "Start Game" button and "Back to Menu" button after game ends
                 document.getElementById('breakout-start-btn').style.display = 'block';
+                document.getElementById('back-to-menu-btn').style.display = 'block';
+            }
+
+            // NEW: Fireworks animation function
+            function drawFireworks(ctx, canvas) {
+                const fireworks = [];
+                const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#FFD700', '#FF69B4'];
+                
+                // Create firework particles
+                for (let i = 0; i < 50; i++) {
+                    fireworks.push({
+                        x: canvas.width / 2,
+                        y: canvas.height / 2,
+                        vx: (Math.random() - 0.5) * 10,
+                        vy: (Math.random() - 0.5) * 10,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        life: 1
+                    });
+                }
+                
+                // Animate fireworks
+                let frame = 0;
+                const animateFireworks = () => {
+                    if (frame < 60) {
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
+                        fireworks.forEach(fw => {
+                            fw.x += fw.vx;
+                            fw.y += fw.vy;
+                            fw.vy += 0.1; // gravity
+                            fw.life -= 0.02;
+                            
+                            ctx.fillStyle = fw.color;
+                            ctx.globalAlpha = fw.life;
+                            ctx.beginPath();
+                            ctx.arc(fw.x, fw.y, 3, 0, Math.PI * 2);
+                            ctx.fill();
+                        });
+                        
+                        ctx.globalAlpha = 1;
+                        frame++;
+                        requestAnimationFrame(animateFireworks);
+                    } else {
+                        // Redraw final screen after fireworks
+                        ctx.fillStyle = '#000';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.fillStyle = '#FFD700';
+                        ctx.font = 'bold 60px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('🎉 YOU WON! 🎉', canvas.width / 2, canvas.height / 2 - 40);
+                        ctx.fillStyle = '#FFF';
+                        ctx.font = '30px Arial';
+                        ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+                    }
+                };
+                
+                animateFireworks();
             }
 
             draw();
