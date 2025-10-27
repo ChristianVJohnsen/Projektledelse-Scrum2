@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snake spil</title>
+    <title>Snake Game</title>
     <style>
         * {
             margin: 0;
@@ -38,7 +38,7 @@
             border-radius: 15px;
             padding: 30px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            max-width: 500px;
+            max-width: 900px;
             margin: 0 auto;
         }
 
@@ -77,6 +77,8 @@
             margin: 20px auto;
             background: #000;
             border-radius: 5px;
+            max-width: 100%;
+            height: auto;
         }
 
         .game-info {
@@ -99,20 +101,110 @@
             color: #333;
             margin: 20px 0;
         }
+
+        /* Mobile touch controls */
+        .touch-controls {
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 10px;
+            max-width: 250px;
+            margin: 20px auto;
+        }
+
+        .touch-controls button {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.5em;
+            padding: 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        .touch-controls button:active {
+            background: #5568d3;
+            transform: scale(0.95);
+        }
+
+        .touch-controls .btn-up {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        .touch-controls .btn-left {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        .touch-controls .btn-right {
+            grid-column: 3;
+            grid-row: 2;
+        }
+
+        .touch-controls .btn-down {
+            grid-column: 2;
+            grid-row: 3;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2em;
+                margin-bottom: 30px;
+            }
+
+            .game-screen {
+                padding: 20px;
+            }
+
+            #snake-canvas {
+                width: 100%;
+                height: auto;
+            }
+
+            .touch-controls {
+                display: grid;
+            }
+
+            .controls {
+                font-size: 0.9em;
+            }
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            .touch-controls {
+                display: grid;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🐍 Snake Spil</h1>
+        <h1>🐍 Snake Game</h1>
         
         <div id="snake-game" class="game-screen active">
             <h2 style="text-align: center; color: #333; margin-bottom: 20px;">🐍 Snake</h2>
             <div class="game-info">Score: <span id="snake-score">0</span></div>
-            <canvas id="snake-canvas" width="400" height="400"></canvas>
-            <button class="start-btn" id="snake-start-btn" onclick="startSnakeGame()">Start Spil</button>
+            <canvas id="snake-canvas" width="800" height="500"></canvas>
+            <button class="start-btn" id="snake-start-btn" onclick="startSnakeGame()">Start Game</button>
+            
+            <!-- Touch controls for mobile -->
+            <div class="touch-controls" id="touch-controls">
+                <button class="btn-up" onclick="handleTouchDirection('UP')">▲</button>
+                <button class="btn-left" onclick="handleTouchDirection('LEFT')">◀</button>
+                <button class="btn-right" onclick="handleTouchDirection('RIGHT')">▶</button>
+                <button class="btn-down" onclick="handleTouchDirection('DOWN')">▼</button>
+            </div>
+            
             <div class="controls">
-                <strong>Styring:</strong> Brug piletasterne til at styre slangen<br>
-                Spis de røde æbler for at vokse og få point!
+                <strong>Controls:</strong> Use arrow keys to control the snake<br>
+                <span class="desktop-only">Eat the red apples to grow and score points!</span>
+                <span class="mobile-only" style="display: none;">Use the buttons above or swipe to control the snake<br>
+                Eat the red apples to grow and score points!</span>
             </div>
             <div class="game-over" id="snake-game-over" style="display: none;"></div>
         </div>
@@ -210,10 +302,21 @@
             if (snakeX === food.x && snakeY === food.y) {
                 score++;
                 document.getElementById('snake-score').textContent = score;
+                
+                // NEW CODE: Check for victory condition (max possible score)
+                const maxScore = (canvas.width / box) * (canvas.height / box) - 1;
+                if (score >= maxScore) {
+                    clearInterval(game);
+                    endSnakeGameVictory(score);
+                    return;
+                }
+                
                 food = {
                     x: Math.floor(Math.random() * 19 + 1) * box,
                     y: Math.floor(Math.random() * 19 + 1) * box
                 };
+                // NEW CODE: Ensure food doesn't spawn inside snake
+                generateValidFoodPosition();
             } else {
                 snake.pop();
             }
@@ -231,7 +334,7 @@
 
         function startSnake() {
             initSnake();
-            game = setInterval(draw, 100);
+            game = setInterval(draw, 150);
         }
 
         function startSnakeGame() {
@@ -242,10 +345,13 @@
 
         function endSnakeGame(finalScore) {
             const gameOver = document.getElementById('snake-game-over');
-            gameOver.innerHTML = `🎮 Game Over!<br>Din score: ${finalScore}<br><br>Tryk på "Start Spil" for at spille igen!`;
+            gameOver.innerHTML = `🎮 Game Over!<br>Your score: ${finalScore}<br><br>Press "Start Game" to play again!`;
             gameOver.style.display = 'block';
             document.getElementById('snake-start-btn').style.display = 'block';
             currentGame = null;
+            
+            // NEW CODE: Show game over on canvas
+            showGameOverScreen(finalScore, false);
         }
 
         function showCountdown(canvas, callback) {
@@ -278,6 +384,152 @@
                 e.preventDefault();
             }
         });
+
+        // NEW CODE: Function to generate valid food position (not inside snake)
+        function generateValidFoodPosition() {
+            let validPosition = false;
+            let newFood = { x: 0, y: 0 };
+            
+            while (!validPosition) {
+                newFood = {
+                    x: Math.floor(Math.random() * 19 + 1) * box,
+                    y: Math.floor(Math.random() * 19 + 1) * box
+                };
+                
+                // Check if food position collides with snake
+                validPosition = true;
+                for (let i = 0; i < snake.length; i++) {
+                    if (newFood.x === snake[i].x && newFood.y === snake[i].y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+            
+            food = newFood;
+        }
+
+        // NEW CODE: Touch controls for mobile
+        function handleTouchDirection(dir) {
+            if (!currentGame) return;
+            
+            if (dir === 'LEFT' && d !== 'RIGHT') nextDirection = 'LEFT';
+            else if (dir === 'UP' && d !== 'DOWN') nextDirection = 'UP';
+            else if (dir === 'RIGHT' && d !== 'LEFT') nextDirection = 'RIGHT';
+            else if (dir === 'DOWN' && d !== 'UP') nextDirection = 'DOWN';
+        }
+
+        // NEW CODE: Swipe detection for mobile
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+
+        canvas.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            if (!currentGame) return;
+            
+            touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
+            handleSwipe();
+        }, { passive: false });
+
+        function handleSwipe() {
+            const diffX = touchEndX - touchStartX;
+            const diffY = touchEndY - touchStartY;
+            const minSwipeDistance = 30;
+            
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                // Horizontal swipe
+                if (Math.abs(diffX) > minSwipeDistance) {
+                    if (diffX > 0 && d !== 'LEFT') {
+                        nextDirection = 'RIGHT';
+                    } else if (diffX < 0 && d !== 'RIGHT') {
+                        nextDirection = 'LEFT';
+                    }
+                }
+            } else {
+                // Vertical swipe
+                if (Math.abs(diffY) > minSwipeDistance) {
+                    if (diffY > 0 && d !== 'UP') {
+                        nextDirection = 'DOWN';
+                    } else if (diffY < 0 && d !== 'DOWN') {
+                        nextDirection = 'UP';
+                    }
+                }
+            }
+        }
+
+        // NEW CODE: Show/hide mobile-specific text
+        window.addEventListener('load', function() {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+                || (window.matchMedia && window.matchMedia("(max-width: 600px)").matches);
+            
+            if (isMobile) {
+                const desktopText = document.querySelector('.desktop-only');
+                const mobileText = document.querySelector('.mobile-only');
+                if (desktopText) desktopText.style.display = 'none';
+                if (mobileText) mobileText.style.display = 'inline';
+            }
+        });
+
+        // NEW CODE: Display game over or victory screen on canvas
+        function showGameOverScreen(finalScore, isVictory) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            if (isVictory) {
+                // Victory screen
+                ctx.fillStyle = '#FFD700';
+                ctx.font = 'bold 60px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🎉 VICTORY! 🎉', canvas.width / 2, canvas.height / 2 - 60);
+                
+                ctx.fillStyle = '#4CAF50';
+                ctx.font = 'bold 40px Arial';
+                ctx.fillText('You Win!', canvas.width / 2, canvas.height / 2);
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = '30px Arial';
+                ctx.fillText('Perfect Score: ' + finalScore, canvas.width / 2, canvas.height / 2 + 50);
+                
+                ctx.font = '20px Arial';
+                ctx.fillText('You filled the entire board!', canvas.width / 2, canvas.height / 2 + 90);
+            } else {
+                // Game over screen
+                ctx.fillStyle = '#FF5722';
+                ctx.font = 'bold 60px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 40);
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = '30px Arial';
+                ctx.fillText('Your Score: ' + finalScore, canvas.width / 2, canvas.height / 2 + 20);
+                
+                ctx.font = '20px Arial';
+                ctx.fillText('Press "Start Game" to try again', canvas.width / 2, canvas.height / 2 + 60);
+            }
+        }
+
+        // NEW CODE: Victory handler
+        function endSnakeGameVictory(finalScore) {
+            const gameOver = document.getElementById('snake-game-over');
+            gameOver.innerHTML = `🎉 VICTORY! 🎉<br>Perfect Score: ${finalScore}<br><br>You filled the entire board!<br>Press "Start Game" to play again!`;
+            gameOver.style.display = 'block';
+            document.getElementById('snake-start-btn').style.display = 'block';
+            currentGame = null;
+            
+            // Show victory screen on canvas
+            showGameOverScreen(finalScore, true);
+        }
     </script>
 </body>
 </html>
