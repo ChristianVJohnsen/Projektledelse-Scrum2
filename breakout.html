@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="da">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breakout Spil</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #f6a38c 100%);
+            min-height: 100vh;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 3em;
+            margin-bottom: 50px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-screen {
+            display: block;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .start-btn {
+            background: #85b9f8;
+            color: rgb(6, 42, 120);
+            border: none;
+            padding: 15px 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2em;
+            margin: 20px auto;
+            display: block;
+            transition: background 0.3s;
+        }
+
+        .start-btn:hover {
+            background: #5568d3;
+        }
+
+        #breakout-canvas {
+            border: 3px solid #667eea;
+            display: block;
+            margin: 20px auto;
+            background: #000;
+            border-radius: 5px;
+        }
+
+        .game-info {
+            text-align: center;
+            font-size: 1.2em;
+            margin: 10px 0;
+            color: #333;
+        }
+
+        .controls {
+            text-align: center;
+            color: #666;
+            margin-top: 20px;
+            line-height: 1.8;
+        }
+
+        .game-over {
+            text-align: center;
+            font-size: 1.5em;
+            color: #333;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🧱 Breakout</h1>
+
+        <div id="breakout-game" class="game-screen">
+            <h2 style="text-align: center; color: #333; margin-bottom: 20px;">🧱 Breakout</h2>
+            <div class="game-info">Score: <span id="breakout-score">0</span> | Liv: <span id="lives">3</span></div>
+            <canvas id="breakout-canvas" width="600" height="400"></canvas>
+            <button class="start-btn" id="breakout-start-btn" onclick="startBreakoutGame()">Start Spil</button>
+            <div class="controls">
+                <strong>Styring:</strong> Brug ← og → piletasterne eller A og D<br>
+                Tryk MELLEMRUM for at frigive bolden
+            </div>
+            <div class="game-over" id="breakout-game-over" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentGame = null;
+        let gameLoop = null;
+
+        // Prevent scrolling when using arrow keys or space
+        window.addEventListener('keydown', function (e) {
+            if (currentGame && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+                e.preventDefault();
+            }
+        });
+
+        function showCountdown(canvas, callback) {
+            const ctx = canvas.getContext('2d');
+            let count = 3;
+            const countdownInterval = setInterval(() => {
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 80px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                if (count > 0) {
+                    ctx.fillText(count, canvas.width / 2, canvas.height / 2);
+                    count--;
+                } else {
+                    ctx.fillText('GO!', canvas.width / 2, canvas.height / 2);
+                    clearInterval(countdownInterval);
+                    setTimeout(callback, 500);
+                }
+            }, 1000);
+        }
+
+        // BREAKOUT GAME
+        function startBreakoutGame() {
+            document.getElementById('breakout-start-btn').style.display = 'none';
+            document.getElementById('breakout-game-over').style.display = 'none';
+            const canvas = document.getElementById('breakout-canvas');
+            showCountdown(canvas, () => startBreakout());
+        }
+
+        function startBreakout() {
+            currentGame = 'breakout';
+            const canvas = document.getElementById('breakout-canvas');
+            const ctx = canvas.getContext('2d');
+
+            const paddle = { w: 80, h: 10, x: canvas.width / 2 - 40, speed: 6 };
+            let ball = { x: canvas.width / 2, y: canvas.height - 30, r: 8, vx: 3, vy: -3, moving: false };
+            let score = 0;
+            let lives = 3;
+
+            document.getElementById('breakout-score').textContent = '0';
+            document.getElementById('lives').textContent = '3';
+
+            const bricks = [];
+            const brickRows = 5;
+            const brickCols = 8;
+            const brickW = 70;
+            const brickH = 20;
+            const brickPadding = 5;
+            const brickOffsetTop = 50;
+            const brickOffsetLeft = 15;
+
+            for (let c = 0; c < brickCols; c++) {
+                bricks[c] = [];
+                for (let r = 0; r < brickRows; r++) {
+                    bricks[c][r] = { x: 0, y: 0, status: 1 };
+                }
+            }
+
+            const keys = {};
+
+            document.onkeydown = (e) => {
+                keys[e.key] = true;
+                if (e.key === ' ' && !ball.moving) ball.moving = true;
+            };
+
+            document.onkeyup = (e) => {
+                keys[e.key] = false;
+            };
+
+            function drawBricks() {
+                for (let c = 0; c < brickCols; c++) {
+                    for (let r = 0; r < brickRows; r++) {
+                        if (bricks[c][r].status === 1) {
+                            const brickX = c * (brickW + brickPadding) + brickOffsetLeft;
+                            const brickY = r * (brickH + brickPadding) + brickOffsetTop;
+                            bricks[c][r].x = brickX;
+                            bricks[c][r].y = brickY;
+                            ctx.fillStyle = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8'][r];
+                            ctx.fillRect(brickX, brickY, brickW, brickH);
+                            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                            ctx.strokeRect(brickX, brickY, brickW, brickH);
+                        }
+                    }
+                }
+            }
+
+            function collisionDetection() {
+                for (let c = 0; c < brickCols; c++) {
+                    for (let r = 0; r < brickRows; r++) {
+                        const b = bricks[c][r];
+                        if (b.status === 1) {
+                            if (ball.x > b.x && ball.x < b.x + brickW && ball.y > b.y && ball.y < b.y + brickH) {
+                                ball.vy *= -1;
+                                b.status = 0;
+                                score++;
+                                document.getElementById('breakout-score').textContent = score;
+                                if (score === brickRows * brickCols) {
+                                    endBreakoutGame(true);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            function draw() {
+                if (currentGame !== 'breakout') return;
+
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                drawBricks();
+                collisionDetection();
+
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(paddle.x, canvas.height - 20, paddle.w, paddle.h);
+
+                ctx.beginPath();
+                ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+                    paddle.x = Math.max(0, paddle.x - paddle.speed);
+                }
+                if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+                    paddle.x = Math.min(canvas.width - paddle.w, paddle.x + paddle.speed);
+                }
+
+                if (ball.moving) {
+                    ball.x += ball.vx;
+                    ball.y += ball.vy;
+
+                    if (ball.x - ball.r < 0 || ball.x + ball.r > canvas.width) ball.vx *= -1;
+                    if (ball.y - ball.r < 0) ball.vy *= -1;
+
+                    if (ball.y + ball.r > canvas.height - 20 && ball.x > paddle.x && ball.x < paddle.x + paddle.w) {
+                        ball.vy *= -1;
+                        ball.vx += (ball.x - (paddle.x + paddle.w / 2)) * 0.1;
+                    }
+
+                    if (ball.y > canvas.height) {
+                        lives--;
+                        document.getElementById('lives').textContent = lives;
+                        if (lives === 0) {
+                            endBreakoutGame(false);
+                            return;
+                        }
+                        ball.x = canvas.width / 2;
+                        ball.y = canvas.height - 30;
+                        ball.vx = 3;
+                        ball.vy = -3;
+                        ball.moving = false;
+                        paddle.x = canvas.width / 2 - 40;
+                    }
+                } else {
+                    ball.x = paddle.x + paddle.w / 2;
+                    ball.y = canvas.height - 30;
+                }
+
+                gameLoop = requestAnimationFrame(draw);
+            }
+
+            function endBreakoutGame(won) {
+                currentGame = null;
+                if (gameLoop) {
+                    cancelAnimationFrame(gameLoop);
+                }
+
+                const gameOver = document.getElementById('breakout-game-over');
+                if (won) {
+                    gameOver.innerHTML = `🎉 Du vandt!<br>Score: ${score}<br><br>Tryk på "Start Spil" for at spille igen!`;
+                } else {
+                    gameOver.innerHTML = `Game Over!<br>Score: ${score}<br><br>Tryk på "Start Spil" for at spille igen!`;
+                }
+                gameOver.style.display = 'block';
+                document.getElementById('breakout-start-btn').style.display = 'block';
+            }
+
+            draw();
+        }
+    </script>
+</body>
+
+</html>
