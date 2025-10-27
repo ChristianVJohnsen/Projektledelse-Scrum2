@@ -179,7 +179,7 @@
             const ctx = canvas.getContext('2d');
 
             const paddle = { w: 100, h: 12, x: canvas.width / 2 - 50, speed: 7 };
-            let ball = { x: canvas.width / 2, y: canvas.height - 40, r: 8, vx: 2, vy: -2, moving: false };
+            let ball = { x: canvas.width / 2, y: canvas.height - 40, r: 8, vx: 4, vy: -4, moving: false };
             let score = 0;
             let lives = 3;
 
@@ -309,8 +309,8 @@
                         }
                         ball.x = canvas.width / 2;
                         ball.y = canvas.height - 40;
-                        ball.vx = 2;
-                        ball.vy = -2;
+                        ball.vx = 4;
+                        ball.vy = -4;
                         ball.moving = false;
                         paddle.x = canvas.width / 2 - 50;
                     }
