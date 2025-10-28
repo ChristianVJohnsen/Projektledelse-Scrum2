@@ -33,6 +33,12 @@
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
 
+        .logo {
+            display: block;
+            max-width: 300px;
+            margin: 0 auto 30px;
+        }
+
         .games-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 280px));
@@ -160,7 +166,7 @@
 <body>
     <div class="container">
         <div id="menu">
-            <h1>🎮 Choose Your Game</h1>
+            <img src="logo.png" alt="Game Logo" class="logo">
             <div class="games-grid">
                 <div class="game-card" onclick="showGame('snake')">
                     <div class="game-icon">🐍</div>
