@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="da">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spil Hjemmeside</title>
+    <title>Game Website</title>
     <style>
         * {
             margin: 0;
@@ -145,37 +145,26 @@
 
 <body>
     <div class="container">
-        <!-- Menu -->
-        <div id="menu">
-            <h1>🎮 Spil Center</h1>
-            <div class="games-grid">
-                <div class="game-card" onclick="showGame('pong')">
-                    <div class="game-icon">🏓</div>
-                    <div class="game-title">Pong</div>
-                    <div class="game-description">2-spiller pong! Første til 5 point vinder.</div>
-                </div>
-            </div>
-        </div>
 
         <!-- Pong Game -->
-        <div id="pong-game" class="game-screen">
-            <button class="back-btn" onclick="showMenu()">← Tilbage til Menu</button>
-            <h2 style="text-align: center; color: #333; margin-bottom: 20px;">🏓 Pong (2 Spillere)</h2>
-            <div class="game-info">Spiller 1: <span id="player-score">0</span> | Spiller 2: <span id="ai-score">0</span></div>
+        <div id="pong-game" class="game-screen active">
+            <button class="back-btn" onclick="showMenu()">← Back to Menu</button>
+            <h2 style="text-align: center; color: #333; margin-bottom: 20px;">🏓 Pong (2 Players)</h2>
+            <div class="game-info">Player 1: <span id="player-score">0</span> | Player 2: <span id="ai-score">0</span></div>
             <canvas id="pong-canvas" width="600" height="400"></canvas>
-            <button class="start-btn" id="pong-start-btn" onclick="startPongGame()">Start Spil</button>
+            <button class="start-btn" id="pong-start-btn" onclick="startPongGame()">Start Game</button>
             <div class="controls">
-                <strong>Styring:</strong><br>
-                Spiller 1 (venstre): W og S<br>
-                Spiller 2 (højre): ↑ og ↓ piletasterne<br>
-                Første til 5 point vinder!
+                <strong>Controls:</strong><br>
+                Player 1 (left): W and S<br>
+                Player 2 (right): ↑ and ↓ arrow keys<br>
+                First to 5 points wins!
             </div>
             <div class="game-over" id="pong-game-over" style="display: none;"></div>
         </div>
     </div>
 
     <script>
-        let currentGame = null;
+        let currentGame = "pong";
 
         // Prevent scrolling when using arrow keys or space
         window.addEventListener('keydown', function (e) {
@@ -184,18 +173,8 @@
             }
         }, false);
 
-        function showGame(game) {
-            document.getElementById('menu').style.display = 'none';
-            document.getElementById(game + '-game').classList.add('active');
-            currentGame = game;
-        }
-
         function showMenu() {
-            document.getElementById('menu').style.display = 'block';
-            document.querySelectorAll('.game-screen').forEach(screen => {
-                screen.classList.remove('active');
-            });
-            currentGame = null;
+            window.location.href = "index.html"
         }
 
         function showCountdown(canvas, callback) {
@@ -309,11 +288,11 @@
                 }
 
                 if (player1.score === 5) {
-                    endPongGame('Spiller 1');
+                    endPongGame('Player 1');
                     return;
                 }
                 if (player2.score === 5) {
-                    endPongGame('Spiller 2');
+                    endPongGame('Player 2');
                     return;
                 }
 
@@ -329,7 +308,7 @@
 
             function endPongGame(winner) {
                 const gameOver = document.getElementById('pong-game-over');
-                gameOver.innerHTML = `🏆 ${winner} vandt!<br><br>Går tilbage til menu om 3 sekunder...`;
+                gameOver.innerHTML = `🏆 ${winner} won!<br><br>Returning to menu in 3 seconds...`;
                 gameOver.style.display = 'block';
 
                 setTimeout(() => {
