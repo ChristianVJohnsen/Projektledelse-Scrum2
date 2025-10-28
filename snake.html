@@ -208,7 +208,7 @@
 </head>
 <body>
     <div class="container">
-        <button class="back-btn" onclick="window.location.href='https://playforged.netlify.app/index.html'">Back to Menu</button>
+        <button class="back-btn" onclick="showMenu()">Back to Menu</button>
         <h1>🐍 Snake Game</h1>
         
         <div id="snake-game" class="game-screen active">
@@ -258,6 +258,10 @@
         }
 
         document.addEventListener('keydown', direction);
+        
+        function showMenu() {
+            window.location.href = "index.html"
+        }
 
         function direction(event) {
             if (!currentGame) return;
